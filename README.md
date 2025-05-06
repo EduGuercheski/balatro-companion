@@ -1,4 +1,4 @@
-# app_disp
+# balatro_companion
 
 A new Flutter project.
 
