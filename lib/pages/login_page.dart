@@ -44,41 +44,82 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      backgroundColor: const Color(0xFF4F7768),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: "Email"),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/blackboard.png',
+                  height: 200,
+                ),
+                const SizedBox(height: 40),
+
+                TextField(
+                  controller: _emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: "Email",
+                    labelStyle: TextStyle(color: Colors.white),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: "Senha",
+                    labelStyle: TextStyle(color: Colors.white),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                if (_errorMessage != null)
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                const SizedBox(height: 20),
+                _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : ElevatedButton(
+                  onPressed: _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF4F7768),
+                  ),
+                  child: const Text("Entrar"),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const RegisterPage()),
+                    );
+                  },
+                  child: const Text(
+                    "Não tem conta? Cadastre-se",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: "Senha"),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-            if (_errorMessage != null)
-              Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 20),
-            _isLoading
-                ? const CircularProgressIndicator()
-                : ElevatedButton(
-              onPressed: _login,
-              child: const Text("Entrar"),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const RegisterPage()),
-                );
-              },
-              child: const Text("Não tem conta? Cadastre-se"),
-            ),
-          ],
+          ),
         ),
       ),
     );
