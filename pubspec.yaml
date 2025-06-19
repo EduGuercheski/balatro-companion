@@ -62,6 +62,12 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/images/cards/tarot/
+    - assets/images/cards/jokers/
+    - assets/images/cards/celestial/
+    - assets/images/cards/spectral/
+    - assets/images/cards/decks/
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -19,7 +19,7 @@ class _HomePageState extends State<HomePage> {
   bool isLoading = true;
   User? user;
   Widget? selectedPage;
-  String appBarTitle = 'Área Standard';
+  String appBarTitle = 'Guias';
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         userRole = doc.data()?['role'] ?? 'standard';
         selectedPage = const StandardArea();
-        appBarTitle = 'Área Standard';
+        appBarTitle = 'Guias';
         isLoading = false;
       });
     } else {
@@ -83,21 +83,21 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            _buildDrawerItem(Icons.home, "Área Standard", () {
+            _buildDrawerItem(Icons.home, "Guias", () {
               setState(() {
                 selectedPage = const StandardArea();
-                appBarTitle = "Área Standard";
+                appBarTitle = "Guias";
               });
               Navigator.pop(context);
             }),
             _buildDrawerItem(
-              Icons.star,
-              "Área VIP",
+              Icons.calculate,
+              "Calculadora de pontuações",
               userRole == 'vip' || userRole == 'admin'
                   ? () {
                 setState(() {
                   selectedPage = const VipArea();
-                  appBarTitle = "Área VIP";
+                  appBarTitle = "Calculadora de pontuações";
                 });
                 Navigator.pop(context);
               }
