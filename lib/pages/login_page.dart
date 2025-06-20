@@ -1,7 +1,11 @@
+// lib/login_page.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_page.dart';
 import 'register_page.dart';
+
+// 1. IMPORTE O SERVIÇO DE LOG
+import '../services/activity_log_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,10 +27,16 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      // Tenta fazer o login com o Firebase Auth
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+
+      await ActivityLogService().logUserLogin();
+
+      // Se não houver erro, navega para a HomePage
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomePage()),
       );
@@ -35,9 +45,11 @@ class _LoginPageState extends State<LoginPage> {
         _errorMessage = e.message;
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

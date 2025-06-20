@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'activity_log_page.dart';
 import 'login_page.dart';
 import 'standard_area.dart';
 import 'vip_area.dart';
@@ -103,7 +104,7 @@ class _HomePageState extends State<HomePage> {
               }
                   : null,
             ),
-            if (userRole == 'admin')
+            if (userRole == 'admin') ...[
               _buildDrawerItem(Icons.manage_accounts, "Gerenciar Papéis", () {
                 setState(() {
                   selectedPage = const RoleManagementPage();
@@ -111,6 +112,15 @@ class _HomePageState extends State<HomePage> {
                 });
                 Navigator.pop(context);
               }),
+              // NOVO ITEM DO MENU ADICIONADO AQUI
+              _buildDrawerItem(Icons.analytics_outlined, "Relatório de Atividades", () {
+                setState(() {
+                  selectedPage = const ActivityLogPage();
+                  appBarTitle = "Relatório de Atividades";
+                });
+                Navigator.pop(context);
+              }),
+            ],
             const Spacer(),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
