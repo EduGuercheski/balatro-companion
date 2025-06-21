@@ -10,29 +10,47 @@ class ActivityLogPage extends StatefulWidget {
 }
 
 class _ActivityLogPageState extends State<ActivityLogPage> {
-  // 1. Novas variáveis de estado para a seleção de usuário
+  // 1. Dicionário de traduções para as ações
+  final Map<String, String> _actionTranslations = {
+    'card_viewed': 'Cartão Visualizado',
+    'user_login': 'Login de Usuário',
+    // Adicione outras traduções aqui no futuro
+  };
+
+  // Variáveis de estado para a seleção de usuário
   bool _isUsersLoading = true;
   String? _selectedUserId;
   List<Map<String, dynamic>> _allUsers = [];
-
-  // Variáveis de estado para os logs do usuário selecionado
-  bool _isLogsLoading = false;
   String? _errorMessage;
-  final _searchController = TextEditingController();
+
+  // Variáveis de estado para os logs e o filtro de AÇÕES
+  bool _isLogsLoading = false;
   List<QueryDocumentSnapshot> _allLogsForUser = [];
   List<QueryDocumentSnapshot> _filteredLogsForUser = [];
+
+  List<String> _uniqueActions = [];
+  String? _selectedAction;
+  static const String _showAllOption = 'Todas as Ações';
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers(); // Agora, iniciamos buscando a lista de usuários
-    _searchController.addListener(_filterLogs);
+    _fetchUsers();
   }
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
+  }
+
+  // 2. Função auxiliar para traduzir uma chave de ação
+  String _translateAction(String actionKey) {
+    // Se for a opção "Todas as Ações", retorna ela mesma
+    if (actionKey == _showAllOption) {
+      return _showAllOption;
+    }
+    // Procura no dicionário, se não encontrar, retorna a chave original
+    return _actionTranslations[actionKey] ?? actionKey;
   }
 
   Future<void> _fetchUsers() async {
@@ -51,26 +69,35 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     setState(() => _isUsersLoading = false);
   }
 
-  // 3. A função de buscar logs agora aceita um userId
   Future<void> _fetchLogsForUser(String userId) async {
     setState(() {
       _isLogsLoading = true;
       _errorMessage = null;
-      _allLogsForUser = []; // Limpa os logs antigos
+      _allLogsForUser = [];
       _filteredLogsForUser = [];
+      _uniqueActions = [];
+      _selectedAction = null;
     });
 
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('activity_logs')
-          .where('userId', isEqualTo: userId) // <-- O FILTRO PRINCIPAL
+          .where('userId', isEqualTo: userId)
           .orderBy('timestamp', descending: true)
           .limit(500)
           .get();
 
+      final actions = querySnapshot.docs
+          .map((doc) => (doc.data() as Map<String, dynamic>)['action'] as String? ?? 'Ação desconhecida')
+          .toSet()
+          .toList();
+      actions.sort();
+
       setState(() {
         _allLogsForUser = querySnapshot.docs;
         _filteredLogsForUser = List.from(_allLogsForUser);
+        _uniqueActions = [_showAllOption, ...actions];
+        _selectedAction = _showAllOption;
       });
     } catch (e) {
       setState(() => _errorMessage = 'Falha ao carregar os logs do usuário.');
@@ -79,16 +106,18 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     }
   }
 
-  // A função de filtro agora opera na lista de logs do usuário selecionado
-  void _filterLogs() {
-    final query = _searchController.text.toLowerCase();
+  void _applyActionFilter(String? selectedAction) {
     setState(() {
-      _filteredLogsForUser = _allLogsForUser.where((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        final action = (data['action'] as String? ?? '').toLowerCase();
-        // Filtra pela ação, já que o usuário já foi pré-selecionado
-        return action.contains(query);
-      }).toList();
+      _selectedAction = selectedAction;
+      if (selectedAction == null || selectedAction == _showAllOption) {
+        _filteredLogsForUser = List.from(_allLogsForUser);
+      } else {
+        _filteredLogsForUser = _allLogsForUser.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final action = data['action'] as String? ?? '';
+          return action == selectedAction;
+        }).toList();
+      }
     });
   }
 
@@ -96,10 +125,8 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // 4. Área de seleção do usuário
         _buildUserSelector(),
         const Divider(height: 1, thickness: 1),
-        // 5. Área de exibição dos logs
         Expanded(
           child: _buildLogsDisplay(),
         ),
@@ -107,8 +134,8 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     );
   }
 
-  // Widget para o dropdown de seleção de usuário
   Widget _buildUserSelector() {
+    // ... (nenhuma mudança aqui)
     if (_isUsersLoading) {
       return const Padding(padding: EdgeInsets.all(16.0), child: Center(child: CircularProgressIndicator()));
     }
@@ -128,7 +155,7 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
         onChanged: (value) {
           if (value != null) {
             setState(() => _selectedUserId = value);
-            _fetchLogsForUser(value); // Busca os logs quando um usuário é selecionado
+            _fetchLogsForUser(value);
           }
         },
         decoration: const InputDecoration(
@@ -139,35 +166,38 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     );
   }
 
-  // Widget que exibe a barra de busca e a lista de logs
   Widget _buildLogsDisplay() {
-    // Se nenhum usuário foi selecionado ainda
     if (_selectedUserId == null) {
-      return const Center(child: Text('Nenhum usuário selecionado.'));
+      return const Center(child: Text('Selecione um usuário para ver os relatórios.'));
     }
-    // Se os logs do usuário estiverem carregando
     if (_isLogsLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    // Se houve erro ao carregar os logs
     if (_errorMessage != null) {
       return Center(child: Text(_errorMessage!));
     }
-    // Se não houver logs para o usuário selecionado
-    if (_filteredLogsForUser.isEmpty) {
-      return const Center(child: Text('Nenhum log de atividade para este usuário.', style: TextStyle(color: Colors.white),));
-    }
 
-    // Se tudo deu certo, mostra a busca e a lista
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: TextField(
-            controller: _searchController,
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: DropdownButtonFormField<String>(
+            value: _selectedAction,
+            isExpanded: true,
+            items: _uniqueActions.map((actionKey) {
+              return DropdownMenuItem(
+                value: actionKey,
+                // 3. Usa a função de tradução para o texto do item do dropdown
+                child: Text(_translateAction(actionKey)),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                _applyActionFilter(value);
+              }
+            },
             decoration: InputDecoration(
-              hintText: 'Filtrar por ação...',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(Icons.filter_list),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true,
               fillColor: Colors.white,
@@ -175,7 +205,19 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
+          child: _filteredLogsForUser.isEmpty
+              ? const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Nenhum log encontrado para a ação selecionada.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          )
+              : ListView.builder(
+            padding: const EdgeInsets.only(top: 12.0),
             itemCount: _filteredLogsForUser.length,
             itemBuilder: (context, index) {
               final doc = _filteredLogsForUser[index];
@@ -187,10 +229,9 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     );
   }
 
-  // Widget que constrói cada item da lista de logs
   Widget _buildLogListItem(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final action = data['action'] as String? ?? 'Ação desconhecida';
+    final actionKey = data['action'] as String? ?? 'Ação desconhecida';
     final detailsMap = data['details'] as Map<String, dynamic>? ?? {};
     final detailsString = detailsMap.values.join(', ');
     final formattedTimestamp = _formatTimestamp(data['timestamp'] as Timestamp?);
@@ -201,27 +242,29 @@ class _ActivityLogPageState extends State<ActivityLogPage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: ListTile(
-        leading: Icon(_getIconForAction(action), color: const Color(0xFF4F7768)),
+        // A função do ícone continua usando a chave original, o que é correto
+        leading: Icon(_getIconForAction(actionKey), color: const Color(0xFF4F7768)),
+        // 4. Usa a função de tradução para o título do ListTile
         title: Text(
-          action,
+          _translateAction(actionKey),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        // 3. Usa a nova string formatada no subtítulo.
         subtitle: Text(subtitleText),
         isThreeLine: detailsString.isNotEmpty,
       ),
     );
   }
 
-  // As funções _formatTimestamp e _getIconForAction permanecem as mesmas
   String _formatTimestamp(Timestamp? timestamp) {
     if (timestamp == null) return 'Data indisponível';
     return DateFormat('dd/MM/yyyy HH:mm').format(timestamp.toDate());
   }
 
-  IconData _getIconForAction(String action) {
-    switch (action) {
+  IconData _getIconForAction(String actionKey) {
+    // A lógica dos ícones permanece com as chaves originais
+    switch (actionKey) {
       case 'card_viewed': return Icons.visibility;
+      case 'user_login': return Icons.login; // Sugestão de ícone para login
       case 'category_searched': return Icons.search;
       default: return Icons.history;
     }
